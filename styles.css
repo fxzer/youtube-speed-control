@@ -1,0 +1,40 @@
+.speed-button {
+  color: white;
+  height: 48px !important;
+  width: 60px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-right: 2px;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  border: none;
+  cursor: pointer;
+}
+
+
+.speed-menu {
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  right: 240px;
+  background-color: rgba(28, 28, 28, 0.9);
+  border-radius: 4px;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.speed-option {
+  color: white;
+  height: 40px;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.speed-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
