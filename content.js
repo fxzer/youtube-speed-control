@@ -46,8 +46,18 @@ function setPlaybackSpeed(speed) {
   if (video) {
     video.playbackRate = speed;
     document.querySelector('.speed-button').innerHTML = `${speed}x`;
+    // 存储当前速度
+    localStorage.setItem('youtubePlaybackSpeed', speed);
   }
   document.querySelector('.speed-menu').style.display = 'none';
+}
+
+// 添加一个新函数来应用存储的播放速度
+function applyStoredPlaybackSpeed() {
+  const storedSpeed = localStorage.getItem('youtubePlaybackSpeed');
+  if (storedSpeed) {
+    setPlaybackSpeed(parseFloat(storedSpeed));
+  }
 }
 
 // 修改定位菜单函数
@@ -91,6 +101,22 @@ function init() {
     document.addEventListener('click', () => {
       speedMenu.style.display = 'none';
     });
+
+    // 监听视频元素的变化
+    const videoObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+          applyStoredPlaybackSpeed();
+        }
+      });
+    });
+
+    const video = document.querySelector('video');
+    if (video) {
+      videoObserver.observe(video, { attributes: true });
+      // 初始应用存储的播放速度
+      applyStoredPlaybackSpeed();
+    }
   }
 }
 
