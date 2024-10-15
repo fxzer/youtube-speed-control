@@ -121,17 +121,20 @@ function init() {
 }
 
 // 修改初始化方式
-function waitForYouTubeControls() {
+function waitForYouTubeControls(attempts = 0) {
+  const maxAttempts = 50; // 最大尝试次数,大约25秒
   const controls = document.querySelector('.ytp-right-controls');
   if (controls) {
     init();
+  } else if (attempts < maxAttempts) {
+    requestAnimationFrame(() => waitForYouTubeControls(attempts + 1));
   } else {
-    setTimeout(waitForYouTubeControls, 500); // 每500毫秒检查一次
+    console.error('Failed to initialize YouTube speed control after maximum attempts');
   }
 }
 
 // 页面加载完成后开始等待YouTube控件
-window.addEventListener('load', waitForYouTubeControls);
+window.addEventListener('load', () => waitForYouTubeControls());
 
 // 添加全屏事件监听
 document.addEventListener('fullscreenchange', () => {
