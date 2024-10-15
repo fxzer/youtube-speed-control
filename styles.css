@@ -1,7 +1,6 @@
 .speed-button {
   color: inherit;
-  height: 48px !important;
-  width: 60px;
+  height: 100% !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -15,9 +14,6 @@
 
 .speed-menu {
   display: none;
-  position: absolute;
-  bottom: 61px;
-  right: 240px;
   background-color: rgba(28, 28, 28, 0.9);
   border-radius: 6px;
   padding: 8px 0;
