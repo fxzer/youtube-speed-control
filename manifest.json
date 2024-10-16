@@ -3,7 +3,6 @@
   "name": "YouTube 高倍速播放",
   "version": "1.0",
   "description": "为YouTube视频添加更多倍速选择",
-  "permissions": ["storage", "activeTab"],
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*"],
