@@ -128,9 +128,7 @@ function waitForYouTubeControls(attempts = 0) {
     init();
   } else if (attempts < maxAttempts) {
     requestAnimationFrame(() => waitForYouTubeControls(attempts + 1));
-  } else {
-    console.error('Failed to initialize YouTube speed control after maximum attempts');
-  }
+  } 
 }
 
 // 页面加载完成后开始等待YouTube控件
