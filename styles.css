@@ -14,23 +14,47 @@
 
 .speed-menu {
   display: none;
-  background-color: rgba(28, 28, 28, 0.9);
-  border-radius: 6px;
-  padding: 8px 0;
+  background-color: rgba(28, 28, 28, 0.95);
+  border-radius: 12px; /* 与设置面板相同的圆角 */
+  padding: 4px 0;
   z-index: 99999 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  width: 68px;
+  overflow: visible;
+  will-change: width,height; /* 与设置面板相同的优化属性 */
 }
 
 .speed-option {
   color: white;
-  height: 40px;
-  width: 60px;
+  height: 32px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
 }
 
 .speed-option:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.speed-option:active {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.speed-menu-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99998;
+}
+
+.speed-menu-container .speed-menu {
+  pointer-events: auto;
 }

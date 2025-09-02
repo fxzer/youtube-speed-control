@@ -27,16 +27,88 @@ function createSpeedMenu() {
   return menu;
 }
 
+// 销毁现有菜单
+function destroySpeedMenu() {
+  const menu = document.querySelector('.speed-menu');
+  if (menu) {
+    menu.remove();
+  }
+}
+
+// 查找或创建菜单容器，插入到设置面板前面
+function findOrCreateMenuContainer() {
+  let container = document.querySelector('.speed-menu-container');
+  if (!container) {
+    const settingsMenu = document.querySelector('#container .html5-video-player .ytp-popup.ytp-settings-menu');
+    const videoPlayer = document.querySelector('#container .html5-video-player');
+    
+    if (settingsMenu && videoPlayer) {
+      container = document.createElement('div');
+      container.className = 'speed-menu-container';
+      // 插入到设置面板前面
+      videoPlayer.insertBefore(container, settingsMenu);
+    } else if (videoPlayer) {
+      // 如果找不到设置面板，插入到播放器中
+      container = document.createElement('div');
+      container.className = 'speed-menu-container';
+      videoPlayer.appendChild(container);
+    }
+  }
+  return container;
+}
+
 // 修改切换倍速选择菜单的显示函数
 function toggleSpeedMenu(event) {
   event.stopPropagation();
-  const menu = document.querySelector('.speed-menu');
+  let menu = document.querySelector('.speed-menu');
+  const button = document.querySelector('.speed-button');
   const settingMenu = document.querySelector('.ytp-settings-menu');
-  if (!menu) return; // 如果菜单不存在，直接返回
-  const isMenuVisible = window.getComputedStyle(menu).display !== 'none';
-  menu.style.display = isMenuVisible ? 'none' : 'block';
-  if (settingMenu) {
-    settingMenu.style.display = isMenuVisible ? 'block' : 'none';
+  if (!button) return; // 如果按钮不存在，直接返回
+  
+  // 检查按钮是否可见
+  function isButtonVisible() {
+    const rect = button.getBoundingClientRect();
+    const style = window.getComputedStyle(button);
+    
+    return (
+      rect.width > 0 && 
+      rect.height > 0 && 
+      style.display !== 'none' && 
+      style.visibility !== 'hidden' && 
+      style.opacity !== '0'
+    );
+  }
+  
+  // 如果按钮不可见，销毁菜单并返回
+  if (!isButtonVisible()) {
+    destroySpeedMenu();
+    return;
+  }
+  
+  // 如果菜单存在且可见，隐藏菜单
+  if (menu && window.getComputedStyle(menu).display !== 'none') {
+    menu.style.display = 'none';
+    if (settingMenu) {
+      settingMenu.style.display = 'block';
+    }
+  } else {
+    // 如果菜单不存在，重新创建菜单并插入到正确位置
+    if (!menu) {
+      const container = findOrCreateMenuContainer();
+      if (container) {
+        menu = createSpeedMenu();
+        container.appendChild(menu);
+      }
+    }
+    
+    // 显示菜单前先重新定位
+    if (menu) {
+      positionMenu(menu, button);
+      menu.style.display = 'block';
+      if (settingMenu) {
+        settingMenu.style.display = 'none';
+      }
+    }
   }
 }
 
@@ -60,19 +132,36 @@ function applyStoredPlaybackSpeed() {
   }
 }
 
-// 修改定位菜单函数
+// 修改定位菜单函数，借鉴YouTube设置面板的定位方式
 function positionMenu(menu, button) {
-  const rect = button.getBoundingClientRect();
+  const buttonRect = button.getBoundingClientRect();
   const isFullscreen = document.fullscreenElement !== null;
+  const videoPlayer = document.querySelector('#container .html5-video-player');
   
-  menu.style.position = isFullscreen ? 'fixed' : 'absolute';
-  menu.style.bottom = isFullscreen ? '68px' : '61px';
-  menu.style.right = isFullscreen ? `${window.innerWidth - rect.right}px` : '240px';
+  if (!videoPlayer) return;
+  
+  // 获取播放器容器的位置信息
+  const playerRect = videoPlayer.getBoundingClientRect();
+  
+  // 使用绝对定位相对于播放器容器，借鉴设置面板的定位方式
+  menu.style.position = 'absolute';
+  menu.style.zIndex = '99999';
+  
+  // 借鉴设置面板的定位：bottom: 61px, right: 12px
+  // 计算相对于播放器容器的位置
+  const menuWidth = 68; // 菜单固定宽度
+  const menuLeft = buttonRect.left - playerRect.left + (buttonRect.width / 2) - (menuWidth / 2);
+  
+  // 使用与设置面板相同的bottom定位方式
+  menu.style.left = `${menuLeft}px`;
+  menu.style.bottom = '61px'; // 与设置面板相同的bottom值
+  menu.style.top = 'auto';
+  menu.style.right = 'auto';
 
   // 设置菜单选项的字体大小
   const options = menu.querySelectorAll('.speed-option');
   options.forEach(option => {
-    option.style.fontSize = isFullscreen ? '18px' : '14px';
+    option.style.fontSize = isFullscreen ? '16px' : '13px';
   });
 }
 
@@ -82,24 +171,69 @@ function init() {
   if (controls) {
     controls.style.display = 'flex';
     const speedButton = createSpeedButton();
-    const speedMenu = createSpeedMenu();
     controls.insertBefore(speedButton, controls.children[2]);
-    controls.appendChild(speedMenu);
-    
-    // 确保菜单初始状态为隐藏
-    speedMenu.style.display = 'none';
-    
-    positionMenu(speedMenu, speedButton);
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (speedMenu.style.display !== 'none') {
-        positionMenu(speedMenu, speedButton);
+
+
+    // 检查按钮是否可见的函数
+    function isButtonVisible() {
+      const rect = speedButton.getBoundingClientRect();
+      const style = window.getComputedStyle(speedButton);
+      
+      return (
+        rect.width > 0 && 
+        rect.height > 0 && 
+        style.display !== 'none' && 
+        style.visibility !== 'hidden' && 
+        style.opacity !== '0'
+      );
+    }
+    
+    // 跟踪按钮的可见性状态
+    let wasButtonVisible = isButtonVisible();
+    
+    // 监听按钮可见性变化
+    const visibilityObserver = new MutationObserver(() => {
+      const isCurrentlyVisible = isButtonVisible();
+      
+      // 如果按钮从可见变为不可见，销毁菜单
+      if (wasButtonVisible && !isCurrentlyVisible) {
+        destroySpeedMenu();
+      }
+      
+      // 更新可见性状态
+      wasButtonVisible = isCurrentlyVisible;
+    });
+    
+    // 监听按钮及其父容器的变化
+    visibilityObserver.observe(speedButton, { 
+      attributes: true, 
+      attributeFilter: ['style', 'class'] 
+    });
+    
+    visibilityObserver.observe(speedButton.parentElement, { 
+      attributes: true, 
+      subtree: true,
+      attributeFilter: ['style', 'class'] 
+    });
+    
+    // 简化的窗口变化监听（仅在必要时）
+    window.addEventListener('resize', () => {
+      const currentMenu = document.querySelector('.speed-menu');
+      if (currentMenu && currentMenu.style.display === 'block') {
+        if (isButtonVisible()) {
+          positionMenu(currentMenu, speedButton);
+        } else {
+          destroySpeedMenu();
+        }
       }
     });
-    resizeObserver.observe(document.body);
 
     document.addEventListener('click', () => {
-      speedMenu.style.display = 'none';
+      const currentMenu = document.querySelector('.speed-menu');
+      if (currentMenu) {
+        currentMenu.style.display = 'none';
+      }
     });
 
     // 监听视频元素的变化
@@ -117,6 +251,7 @@ function init() {
       // 初始应用存储的播放速度
       applyStoredPlaybackSpeed();
     }
+
   }
 }
 
