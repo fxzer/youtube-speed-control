@@ -1,11 +1,11 @@
 .speed-button {
-  color: inherit;
+  color: var(--yt-spec-overlay-text-primary,#fff) !important;
   height: 100% !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
   margin-right: 2px;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   font-size: 18px !important;
   border: none;
   cursor: pointer;
@@ -14,25 +14,26 @@
 
 .speed-menu {
   display: none;
-  background-color: rgba(28, 28, 28, 0.95);
-  border-radius: 12px; /* 与设置面板相同的圆角 */
+  backdrop-filter: var(--yt-frosted-glass-backdrop-filter-override, blur(16px));
+  background: var(--yt-spec-overlay-background-medium, rgba(0, 0, 0, .6));
+  border-radius: 10px; /* 与设置面板相同的圆角 */
   padding: 4px 0;
   z-index: 99999 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  width: 68px;
+  box-shadow: 0 0px 8px  rgba(255, 255, 255, 0.03);
+  width: 80px;
   overflow: visible;
   will-change: width,height; /* 与设置面板相同的优化属性 */
 }
 
 .speed-option {
-  color: white;
-  height: 32px;
+ color: var(--yt-spec-overlay-text-primary);
+  height: 36px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   transition: background-color 0.2s ease;
 }

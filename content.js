@@ -7,7 +7,15 @@ function createSpeedButton() {
   button.className = 'ytp-button speed-button';
   button.innerHTML = '1x';
   button.title = '播放速度';
-  button.onclick = toggleSpeedMenu;
+  
+  // 使用addEventListener而不是onclick，确保能阻止事件冒泡
+  button.addEventListener('click', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    toggleSpeedMenu(event);
+  });
+  
   return button;
 }
 
@@ -20,7 +28,15 @@ function createSpeedMenu() {
     const option = document.createElement('div');
     option.className = 'speed-option';
     option.textContent = `${speed}x`;
-    option.onclick = () => setPlaybackSpeed(speed);
+    
+    // 使用addEventListener确保阻止事件冒泡
+    option.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      setPlaybackSpeed(speed);
+    });
+    
     fragment.insertBefore(option, fragment.firstChild);
   });
   menu.appendChild(fragment);
@@ -59,11 +75,20 @@ function findOrCreateMenuContainer() {
 
 // 修改切换倍速选择菜单的显示函数
 function toggleSpeedMenu(event) {
+  // 完全阻止事件传播和默认行为
+  event.preventDefault();
   event.stopPropagation();
+  event.stopImmediatePropagation();
+  
   let menu = document.querySelector('.speed-menu');
   const button = document.querySelector('.speed-button');
   const settingMenu = document.querySelector('.ytp-settings-menu');
   if (!button) return; // 如果按钮不存在，直接返回
+  
+  // 强制隐藏原生设置面板
+  if (settingMenu) {
+    settingMenu.style.display = 'none';
+  }
   
   // 检查按钮是否可见
   function isButtonVisible() {
@@ -88,9 +113,6 @@ function toggleSpeedMenu(event) {
   // 如果菜单存在且可见，隐藏菜单
   if (menu && window.getComputedStyle(menu).display !== 'none') {
     menu.style.display = 'none';
-    if (settingMenu) {
-      settingMenu.style.display = 'block';
-    }
   } else {
     // 如果菜单不存在，重新创建菜单并插入到正确位置
     if (!menu) {
@@ -121,7 +143,18 @@ function setPlaybackSpeed(speed) {
     // 存储当前速度
     localStorage.setItem('youtubePlaybackSpeed', speed);
   }
-  document.querySelector('.speed-menu').style.display = 'none';
+  
+  // 隐藏倍速菜单
+  const speedMenu = document.querySelector('.speed-menu');
+  if (speedMenu) {
+    speedMenu.style.display = 'none';
+  }
+  
+  // 确保原生设置面板也被隐藏
+  const settingMenu = document.querySelector('.ytp-settings-menu');
+  if (settingMenu) {
+    settingMenu.style.display = 'none';
+  }
 }
 
 // 添加一个新函数来应用存储的播放速度
@@ -167,91 +200,102 @@ function positionMenu(menu, button) {
 
 // 修改主函数
 function init() {
-  const controls = document.querySelector('.ytp-right-controls');
-  if (controls) {
-    controls.style.display = 'flex';
+  // 尝试找到 .ytp-right-controls-left .ytp-settings-button
+  const settingsButton = document.querySelector('.ytp-right-controls-left .ytp-settings-button');
+
+  if (settingsButton) {
+    // 在设置按钮后面插入速度按钮
     const speedButton = createSpeedButton();
-    controls.insertBefore(speedButton, controls.children[2]);
-
-
-
-    // 检查按钮是否可见的函数
-    function isButtonVisible() {
-      const rect = speedButton.getBoundingClientRect();
-      const style = window.getComputedStyle(speedButton);
-      
-      return (
-        rect.width > 0 && 
-        rect.height > 0 && 
-        style.display !== 'none' && 
-        style.visibility !== 'hidden' && 
-        style.opacity !== '0'
-      );
+    settingsButton.parentNode.insertBefore(speedButton, settingsButton.nextSibling);
+  } else {
+    // 如果找不到新的目标位置，回退到原来的方案
+    const controls = document.querySelector('.ytp-right-controls');
+    if (controls) {
+      controls.style.display = 'flex';
+      const speedButton = createSpeedButton();
+      controls.insertBefore(speedButton, controls.children[2]);
     }
-    
-    // 跟踪按钮的可见性状态
-    let wasButtonVisible = isButtonVisible();
-    
-    // 监听按钮可见性变化
-    const visibilityObserver = new MutationObserver(() => {
-      const isCurrentlyVisible = isButtonVisible();
-      
-      // 如果按钮从可见变为不可见，销毁菜单
-      if (wasButtonVisible && !isCurrentlyVisible) {
+  }
+
+  // 只有在成功创建按钮后才继续后续逻辑
+  const speedButton = document.querySelector('.speed-button');
+  if (!speedButton) return;
+
+  // 检查按钮是否可见的函数
+  function isButtonVisible() {
+    const rect = speedButton.getBoundingClientRect();
+    const style = window.getComputedStyle(speedButton);
+
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      style.opacity !== '0'
+    );
+  }
+
+  // 跟踪按钮的可见性状态
+  let wasButtonVisible = isButtonVisible();
+
+  // 监听按钮可见性变化
+  const visibilityObserver = new MutationObserver(() => {
+    const isCurrentlyVisible = isButtonVisible();
+
+    // 如果按钮从可见变为不可见，销毁菜单
+    if (wasButtonVisible && !isCurrentlyVisible) {
+      destroySpeedMenu();
+    }
+
+    // 更新可见性状态
+    wasButtonVisible = isCurrentlyVisible;
+  });
+
+  // 监听按钮及其父容器的变化
+  visibilityObserver.observe(speedButton, {
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
+
+  visibilityObserver.observe(speedButton.parentElement, {
+    attributes: true,
+    subtree: true,
+    attributeFilter: ['style', 'class']
+  });
+
+  // 简化的窗口变化监听（仅在必要时）
+  window.addEventListener('resize', () => {
+    const currentMenu = document.querySelector('.speed-menu');
+    if (currentMenu && currentMenu.style.display === 'block') {
+      if (isButtonVisible()) {
+        positionMenu(currentMenu, speedButton);
+      } else {
         destroySpeedMenu();
       }
-      
-      // 更新可见性状态
-      wasButtonVisible = isCurrentlyVisible;
-    });
-    
-    // 监听按钮及其父容器的变化
-    visibilityObserver.observe(speedButton, { 
-      attributes: true, 
-      attributeFilter: ['style', 'class'] 
-    });
-    
-    visibilityObserver.observe(speedButton.parentElement, { 
-      attributes: true, 
-      subtree: true,
-      attributeFilter: ['style', 'class'] 
-    });
-    
-    // 简化的窗口变化监听（仅在必要时）
-    window.addEventListener('resize', () => {
-      const currentMenu = document.querySelector('.speed-menu');
-      if (currentMenu && currentMenu.style.display === 'block') {
-        if (isButtonVisible()) {
-          positionMenu(currentMenu, speedButton);
-        } else {
-          destroySpeedMenu();
-        }
-      }
-    });
-
-    document.addEventListener('click', () => {
-      const currentMenu = document.querySelector('.speed-menu');
-      if (currentMenu) {
-        currentMenu.style.display = 'none';
-      }
-    });
-
-    // 监听视频元素的变化
-    const videoObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
-          applyStoredPlaybackSpeed();
-        }
-      });
-    });
-
-    const video = document.querySelector('video');
-    if (video) {
-      videoObserver.observe(video, { attributes: true });
-      // 初始应用存储的播放速度
-      applyStoredPlaybackSpeed();
     }
+  });
 
+  document.addEventListener('click', () => {
+    const currentMenu = document.querySelector('.speed-menu');
+    if (currentMenu) {
+      currentMenu.style.display = 'none';
+    }
+  });
+
+  // 监听视频元素的变化
+  const videoObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+        applyStoredPlaybackSpeed();
+      }
+    });
+  });
+
+  const video = document.querySelector('video');
+  if (video) {
+    videoObserver.observe(video, { attributes: true });
+    // 初始应用存储的播放速度
+    applyStoredPlaybackSpeed();
   }
 }
 
